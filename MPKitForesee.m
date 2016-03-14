@@ -1,7 +1,7 @@
 //
 //  MPKitForesee.m
 //
-//  Copyright 2015 mParticle, Inc.
+//  Copyright 2016 mParticle, Inc.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 //
 
 #import "MPKitForesee.h"
+#import "mparticle.h"
+#import "MPKitRegister.h"
 #import "MPDateFormatter.h"
 
 NSString *const kMPForeseeBaseURLKey = @"rootUrl";
@@ -35,19 +37,28 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
 
 @implementation MPKitForesee
 
++ (NSNumber *)kitCode {
+    return @64;
+}
+
++ (void)load {
+    MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Foresee" className:@"MPKitForesee" startImmediately:YES];
+    [MParticle registerExtension:kitRegister];
+}
+
 - (void)setConfiguration:(NSDictionary *)configuration {
-    if (!started || ![self isValidConfiguration:configuration]) {
+    if (!_started || ![self isValidConfiguration:configuration]) {
         return;
     }
-    
-    [super setConfiguration:configuration];
+
+    _configuration = configuration;
     [self setupWithConfiguration:configuration];
 }
 
 #pragma mark Private methods
 - (BOOL)isValidConfiguration:(NSDictionary *)configuration {
     BOOL validConfiguration = configuration[kMPForeseeClientIdKey] && configuration[kMPForeseeSurveyIdKey];
-    
+
     return validConfiguration;
 }
 
@@ -55,31 +66,30 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
     baseURL = configuration[kMPForeseeBaseURLKey] ? configuration[kMPForeseeBaseURLKey] : @"http://survey.foreseeresults.com/survey/display";
     clientId = configuration[kMPForeseeClientIdKey];
     surveyId = configuration[kMPForeseeSurveyIdKey];
-    sendAppVersion = [[configuration[kMPForeseeSendAppVersionKey] lowercaseString] isEqualToString:@"true"];
+    sendAppVersion = [configuration[kMPForeseeSendAppVersionKey] caseInsensitiveCompare:@"true"] == NSOrderedSame;
 }
 
 #pragma mark MPKitInstanceProtocol methods
-- (instancetype)initWithConfiguration:(NSDictionary *)configuration {
-    self = [super initWithConfiguration:configuration];
+- (instancetype)initWithConfiguration:(NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
+    NSAssert(configuration != nil, @"Required parameter. It cannot be nil.");
+    self = [super init];
     if (!self || ![self isValidConfiguration:configuration]) {
         return nil;
     }
-    
-    frameworkAvailable = YES;
-    started = YES;
-    self.forwardedEvents = YES;
-    self.active = YES;
+
+    _configuration = configuration;
+    _started = startImmediately;
 
     [self setupWithConfiguration:configuration];
-    
+
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSDictionary *userInfo = @{mParticleKitInstanceKey:@(MPKitInstanceForesee),
-                                   mParticleEmbeddedSDKInstanceKey:@(MPKitInstanceForesee)};
-        
+        NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode],
+                                   mParticleEmbeddedSDKInstanceKey:[[self class] kitCode]};
+
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
                                                             object:nil
                                                           userInfo:userInfo];
-        
+
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleEmbeddedSDKDidBecomeActiveNotification
                                                             object:nil
                                                           userInfo:userInfo];
@@ -98,32 +108,32 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
                                                                                                         (__bridge CFStringRef)@";/?@&+{}<>,=",
                                                                                                         kCFStringEncodingUTF8);
 #pragma clang diagnostic pop
-        
+
         return encodedString;
     };
 
     NSMutableString *surveyURL = [[NSMutableString alloc] initWithString:baseURL];
-    
+
     // Client, Survey, and Respondent Ids
     CFUUIDRef UUIDRef = CFUUIDCreate(kCFAllocatorDefault);
     NSString *respondentId = (__bridge_transfer NSString *)CFUUIDCreateString(kCFAllocatorDefault, UUIDRef);
     CFRelease(UUIDRef);
 
     [surveyURL appendFormat:@"?cid=%@&sid=%@&rid=%@", encodeString(clientId), encodeString(surveyId), respondentId];
-    
+
     BOOL cppsIncluded = NO;
-    
+
     // App Version
     if (sendAppVersion) {
         NSDictionary *bundleInfoDictionary = [[NSBundle mainBundle] infoDictionary];
         NSString *appVersion = bundleInfoDictionary[@"CFBundleShortVersionString"];
-        
+
         if (appVersion) {
             [surveyURL appendFormat:@"&cpps=cpp%@app_version%@%@%@", encodeString(@"["), encodeString(@"]"), encodeString(@"="), appVersion];
             cppsIncluded = YES;
         }
     }
-    
+
     // User attributes
     if (userAttributes) {
         NSEnumerator *attributeEnumerator = [userAttributes keyEnumerator];
@@ -131,27 +141,27 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
         id value;
         Class NSDateClass = [NSDate class];
         Class NSStringClass = [NSString class];
-        
+
         while ((key = [attributeEnumerator nextObject])) {
             value = userAttributes[key];
-            
+
             if ([value isKindOfClass:NSDateClass]) {
                 value = [MPDateFormatter stringFromDateRFC3339:value];
             } else if (![value isKindOfClass:NSStringClass]) {
                 value = [value stringValue];
             }
-            
+
             if (cppsIncluded) {
                 [surveyURL appendString:@"&"];
             } else {
                 [surveyURL appendString:@"&cpps="];
                 cppsIncluded = YES;
             }
-            
+
             [surveyURL appendFormat:@"cpp%@%@%@%@%@", encodeString(@"["), encodeString(key), encodeString(@"]"), encodeString(@"="), encodeString(value)];
         }
     }
-    
+
     return surveyURL;
 }
 
