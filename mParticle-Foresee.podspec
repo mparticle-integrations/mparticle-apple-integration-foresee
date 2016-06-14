@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "mParticle-Foresee"
-    s.version          = "6.0.7"
+    s.version          = "6.1.0"
     s.summary          = "Foresee integration for mParticle"
 
     s.description      = <<-DESC
@@ -15,5 +15,5 @@ Pod::Spec.new do |s|
 
     s.ios.deployment_target = "7.0"
     s.ios.source_files      = 'mParticle-Foresee/*.{h,m,mm}'
-    s.ios.dependency 'mParticle-Apple-SDK/mParticle', '~> 6.0'
+    s.ios.dependency 'mParticle-Apple-SDK/mParticle', '~> 6.1'
 end
