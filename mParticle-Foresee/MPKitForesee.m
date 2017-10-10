@@ -42,7 +42,7 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
 }
 
 + (void)load {
-    MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Foresee" className:@"MPKitForesee" startImmediately:YES];
+    MPKitRegister *kitRegister = [[MPKitRegister alloc] initWithName:@"Foresee" className:@"MPKitForesee"];
     [MParticle registerExtension:kitRegister];
 }
 
@@ -70,14 +70,16 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
 }
 
 #pragma mark MPKitInstanceProtocol methods
-- (instancetype)initWithConfiguration:(NSDictionary *)configuration startImmediately:(BOOL)startImmediately {
-    self = [super init];
-    if (!self || ![self isValidConfiguration:configuration]) {
-        return nil;
+- (MPKitExecStatus *)didFinishLaunchingWithConfiguration:(NSDictionary *)configuration {
+    MPKitExecStatus *execStatus = nil;
+    
+    if (![self isValidConfiguration:configuration]) {
+        execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeRequirementsNotMet];
+        return execStatus;
     }
 
     _configuration = configuration;
-    _started = startImmediately;
+    _started = YES;
 
     [self setupWithConfiguration:configuration];
 
@@ -89,7 +91,8 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
                                                           userInfo:userInfo];
     });
 
-    return self;
+    execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
+    return execStatus;
 }
 
 - (NSString *)surveyURLWithUserAttributes:(NSDictionary *)userAttributes {
