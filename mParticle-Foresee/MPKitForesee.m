@@ -32,7 +32,7 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
     if (!_started || ![self isValidConfiguration:configuration]) {
         return;
     }
-
+    
     _configuration = configuration;
     [self setupWithConfiguration:configuration];
 }
@@ -40,7 +40,7 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
 #pragma mark Private methods
 - (BOOL)isValidConfiguration:(NSDictionary *)configuration {
     BOOL validConfiguration = configuration[kMPForeseeClientIdKey] && configuration[kMPForeseeSurveyIdKey];
-
+    
     return validConfiguration;
 }
 
@@ -59,20 +59,20 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
         execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeRequirementsNotMet];
         return execStatus;
     }
-
+    
     _configuration = configuration;
     _started = YES;
-
+    
     [self setupWithConfiguration:configuration];
-
+    
     dispatch_async(dispatch_get_main_queue(), ^{
         NSDictionary *userInfo = @{mParticleKitInstanceKey:[[self class] kitCode]};
-
+        
         [[NSNotificationCenter defaultCenter] postNotificationName:mParticleKitDidBecomeActiveNotification
                                                             object:nil
                                                           userInfo:userInfo];
     });
-
+    
     execStatus = [[MPKitExecStatus alloc] initWithSDKCode:[[self class] kitCode] returnCode:MPKitReturnCodeSuccess];
     return execStatus;
 }
@@ -87,32 +87,32 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
                                                                                                         (__bridge CFStringRef)@";/?@&+{}<>,=",
                                                                                                         kCFStringEncodingUTF8);
 #pragma clang diagnostic pop
-
+        
         return encodedString;
     };
-
+    
     NSMutableString *surveyURL = [[NSMutableString alloc] initWithString:baseURL];
-
+    
     // Client, Survey, and Respondent Ids
     CFUUIDRef UUIDRef = CFUUIDCreate(kCFAllocatorDefault);
     NSString *respondentId = (__bridge_transfer NSString *)CFUUIDCreateString(kCFAllocatorDefault, UUIDRef);
     CFRelease(UUIDRef);
-
+    
     [surveyURL appendFormat:@"?cid=%@&sid=%@&rid=%@", encodeString(clientId), encodeString(surveyId), respondentId];
-
+    
     BOOL cppsIncluded = NO;
-
+    
     // App Version
     if (sendAppVersion) {
         NSDictionary *bundleInfoDictionary = [[NSBundle mainBundle] infoDictionary];
         NSString *appVersion = bundleInfoDictionary[@"CFBundleShortVersionString"];
-
+        
         if (appVersion) {
             [surveyURL appendFormat:@"&cpps=cpp%@app_version%@%@%@", encodeString(@"["), encodeString(@"]"), encodeString(@"="), appVersion];
             cppsIncluded = YES;
         }
     }
-
+    
     // User attributes
     if (userAttributes) {
         NSEnumerator *attributeEnumerator = [userAttributes keyEnumerator];
@@ -120,27 +120,27 @@ NSString *const kMPForeseeSendAppVersionKey = @"sendAppVersion";
         id value;
         Class NSDateClass = [NSDate class];
         Class NSStringClass = [NSString class];
-
+        
         while ((key = [attributeEnumerator nextObject])) {
             value = userAttributes[key];
-
+            
             if ([value isKindOfClass:NSDateClass]) {
                 value = [MPDateFormatter stringFromDateRFC3339:value];
             } else if (![value isKindOfClass:NSStringClass]) {
                 value = [value stringValue];
             }
-
+            
             if (cppsIncluded) {
                 [surveyURL appendString:@"&"];
             } else {
                 [surveyURL appendString:@"&cpps="];
                 cppsIncluded = YES;
             }
-
+            
             [surveyURL appendFormat:@"cpp%@%@%@%@%@", encodeString(@"["), encodeString(key), encodeString(@"]"), encodeString(@"="), encodeString(value)];
         }
     }
-
+    
     return surveyURL;
 }
 
