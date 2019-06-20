@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
     s.name             = "mParticle-Foresee"
-    s.version          = "7.10.2"
+    s.version          = "7.10.3"
     s.summary          = "Foresee integration for mParticle"
 
     s.description      = <<-DESC
