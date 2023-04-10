@@ -7,7 +7,7 @@ This repository contains the [Foresee](https://www.foresee.com) integration for 
 1. Add the kit dependency to your app's Podfile:
 
     ```
-    pod 'mParticle-Foresee', '~> 7.0'
+    pod 'mParticle-Foresee', '~> 8'
     ```
 
 2. Follow the mParticle iOS SDK [quick-start](https://github.com/mParticle/mparticle-apple-sdk), then rebuild and launch your app, and verify that you see `"Included kits: { Foresee }"` in your Xcode console 
