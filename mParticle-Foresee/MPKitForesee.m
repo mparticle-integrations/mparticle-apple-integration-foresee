@@ -1,7 +1,4 @@
 #import "MPKitForesee.h"
-#import "mparticle.h"
-#import "MPKitRegister.h"
-#import "MPDateFormatter.h"
 
 NSString *const kMPForeseeBaseURLKey = @"rootUrl";
 NSString *const kMPForeseeClientIdKey = @"clientId";
